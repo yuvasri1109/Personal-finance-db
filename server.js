@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const dotenv = require('dotenv');
 
 const authRoutes = require('./routes/authRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
@@ -10,6 +11,8 @@ const savingsRoutes = require('./routes/savingsRoutes');
 
 const cron = require('node-cron');
 const { processRecurringTransactions } = require('./utils/recurringProcessor');
+
+dotenv.config(); // ✅ Load variables from .env
 
 const app = express();
 
@@ -24,25 +27,27 @@ app.use('/api/budget', budgetRoutes);
 app.use('/api/recurring', recurringRoutes);
 app.use('/api/savings', savingsRoutes);
 
-// Mongoose config to suppress strictQuery warnings (optional)
+// Mongoose config to suppress strictQuery warnings
 mongoose.set('strictQuery', false);
 
 // MongoDB Connection
-mongoose.connect('mongodb://127.0.0.1:27017/finance-tracker', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => {
-  console.log('✅ MongoDB connected');
+mongoose
+  .connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => {
+    console.log('✅ MongoDB connected');
 
-  app.listen(5000, () => {
-    console.log('🚀 Server running on http://localhost:5000');
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('❌ MongoDB connection error:', err);
+    process.exit(1);
   });
-})
-.catch((err) => {
-  console.error('❌ MongoDB connection error:', err);
-  process.exit(1);
-});
 
 // Schedule cron job to run daily at midnight
 cron.schedule('0 0 * * *', async () => {
